@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf8f4;
+  --foreground: #1a2332;
+  --card-bg: #ffffff;
+  --card-border: #e2ddd4;
+  --accent: #b8942e;
+  --accent-hover: #a07f20;
+  --accent-blue: #1e3a5f;
+  --accent-green: #1a8f64;
+  --accent-red: #c93d3d;
+  --text-muted: #7a7468;
+  --section-bg: #f2efe8;
+  --gold-glow: rgba(184, 148, 46, 0.1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-green: var(--accent-green);
+  --color-accent-red: var(--accent-red);
+  --color-text-muted: var(--text-muted);
+  --color-section-bg: var(--section-bg);
+  --color-gold-glow: var(--gold-glow);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Segoe UI", "Assistant", Arial, Helvetica, sans-serif;
+  direction: rtl;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 3px;
+}
+
+.tradingview-widget-container {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(26, 35, 50, 0.08);
+  border-color: var(--accent) !important;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--card-bg) 25%, var(--card-border) 50%, var(--card-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+section {
+  scroll-margin-top: 80px;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #8a6d1b, #b8942e, #8a6d1b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
