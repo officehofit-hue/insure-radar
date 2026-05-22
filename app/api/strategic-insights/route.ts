@@ -114,7 +114,12 @@ function classifyCategory(text: string, group: string): InsightCategory {
   // Competitor moves
   if (group === "ma" || group === "executive") {
     // Check if it mentions a competitor
-    for (const names of Object.values(COMPETITORS)) {
+    for (const names of Object.values(COMPETITOR_EXACT)) {
+      if (names.some((n) => lower.includes(n.toLowerCase()))) {
+        return "מהלך תחרותי";
+      }
+    }
+    for (const names of Object.values(COMPETITOR_FUZZY)) {
       if (names.some((n) => lower.includes(n.toLowerCase()))) {
         return "מהלך תחרותי";
       }
