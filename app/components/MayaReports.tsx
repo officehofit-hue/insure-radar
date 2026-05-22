@@ -29,7 +29,7 @@ const insuranceCompanies: InsuranceCompany[] = [
   {
     name: "מנורה מבטחים",
     taseId: "572",
-    symbol: "MNRH",
+    symbol: "MMHD",
     color: "from-blue-600 to-blue-800",
     mayaUrl: "https://maya.tase.co.il/he/company/572",
     marketUrl: "https://market.tase.co.il/he/market_data/company/572/reports_maya",
@@ -53,7 +53,7 @@ const insuranceCompanies: InsuranceCompany[] = [
   {
     name: "כלל ביטוח",
     taseId: "224",
-    symbol: "KLIL",
+    symbol: "CLIS",
     color: "from-orange-600 to-orange-800",
     mayaUrl: "https://maya.tase.co.il/he/company/224",
     marketUrl: "https://market.tase.co.il/he/market_data/company/224/reports_maya",
@@ -61,7 +61,7 @@ const insuranceCompanies: InsuranceCompany[] = [
   {
     name: "הפניקס",
     taseId: "1041",
-    symbol: "PHNX",
+    symbol: "PHOE",
     color: "from-red-600 to-red-800",
     mayaUrl: "https://maya.tase.co.il/he/company/1041",
     marketUrl: "https://market.tase.co.il/he/market_data/company/1041/reports_maya",

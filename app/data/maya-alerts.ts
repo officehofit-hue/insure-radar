@@ -19,7 +19,7 @@ export const mayaAlerts: MayaAlert[] = [
   {
     id: "1",
     company: "מנורה מבטחים",
-    companySymbol: "MNRH",
+    companySymbol: "MMHD",
     icon: "🔵",
     title: "מנורה מבטחים פרסמו את הדוחות הכספיים ל-Q1 2026",
     desc: "דוח כספי רבעוני ראשון לשנת 2026 — כולל נתוני רווח והפסד, מאזן ותזרים מזומנים",
@@ -31,7 +31,7 @@ export const mayaAlerts: MayaAlert[] = [
   {
     id: "2",
     company: "הפניקס",
-    companySymbol: "PHNX",
+    companySymbol: "PHOE",
     icon: "🔴",
     title: "הפניקס — דיווח מיידי על חלוקת דיבידנד",
     desc: "הודעה על חלוקת דיבידנד לבעלי המניות בסך 1.2 מיליארד שקל",
@@ -67,7 +67,7 @@ export const mayaAlerts: MayaAlert[] = [
   {
     id: "5",
     company: "כלל ביטוח",
-    companySymbol: "KLIL",
+    companySymbol: "CLIS",
     icon: "🟠",
     title: "כלל ביטוח — זימון אסיפה כללית מיוחדת",
     desc: "זימון אסיפה כללית מיוחדת של בעלי המניות לאישור עסקה עם בעל שליטה",
@@ -79,7 +79,7 @@ export const mayaAlerts: MayaAlert[] = [
   {
     id: "6",
     company: "מנורה מבטחים",
-    companySymbol: "MNRH",
+    companySymbol: "MMHD",
     icon: "🔵",
     title: "מנורה — הנפקת אג״ח סדרה חדשה",
     desc: "מנורה מבטחים הודיעה על הנפקת סדרת אגרות חוב חדשה בהיקף 800 מיליון שקל",

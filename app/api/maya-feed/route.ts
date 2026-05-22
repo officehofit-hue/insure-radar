@@ -3,11 +3,11 @@ import Parser from "rss-parser";
 
 // Insurance companies with their Maya links
 const INSURANCE_COMPANIES = [
-  { names: ["מנורה", "מנורה מבטחים"], symbol: "MNRH", icon: "🔵", mayaLink: "https://maya.tase.co.il/he/company/572" },
+  { names: ["מנורה", "מנורה מבטחים"], symbol: "MMHD", icon: "🔵", mayaLink: "https://maya.tase.co.il/he/company/572" },
   { names: ["הראל"], symbol: "HARL", icon: "🟢", mayaLink: "https://maya.tase.co.il/he/company/825" },
   { names: ["מגדל"], symbol: "MGDL", icon: "🟣", mayaLink: "https://maya.tase.co.il/he/company/604" },
-  { names: ["כלל ביטוח"], symbol: "KLIL", icon: "🟠", mayaLink: "https://maya.tase.co.il/he/company/224" },
-  { names: ["הפניקס", "פניקס"], symbol: "PHNX", icon: "🔴", mayaLink: "https://maya.tase.co.il/he/company/1041" },
+  { names: ["כלל ביטוח"], symbol: "CLIS", icon: "🟠", mayaLink: "https://maya.tase.co.il/he/company/224" },
+  { names: ["הפניקס", "פניקס"], symbol: "PHOE", icon: "🔴", mayaLink: "https://maya.tase.co.il/he/company/1041" },
   { names: ["איילון"], symbol: "AILN", icon: "🔷", mayaLink: "https://maya.tase.co.il/he/company/348" },
   { names: ["שומרה"], symbol: "SHMR", icon: "🟤", mayaLink: "https://maya.tase.co.il/he/company/1632" },
   { names: ["מיטב"], symbol: "MTDS", icon: "⚪", mayaLink: "https://maya.tase.co.il/he/company/1702" },
