@@ -9,13 +9,6 @@ export const revalidate = 300;
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
-interface Competitor {
-  names: string[];
-  symbol: string;
-  icon: string;
-  mayaLink: string;
-}
-
 type EventType = "דוח כספי" | "מינוי" | "דיבידנד" | "M&A" | "רגולציה" | "כללי";
 
 interface FeedItem {
@@ -34,63 +27,102 @@ interface FeedItem {
 
 /* ------------------------------------------------------------------ */
 /*  Competitors (everyone except Menora)                               */
+/*  exactNames  – unambiguous, match directly                          */
+/*  fuzzyNames  – common Hebrew words, require insurance/finance       */
+/*                context in the same article to confirm               */
 /* ------------------------------------------------------------------ */
+interface Competitor {
+  exactNames: string[];   // e.g. "מגדל ביטוח" — safe to match alone
+  fuzzyNames: string[];   // e.g. "מגדל" — needs context confirmation
+  symbol: string;
+  icon: string;
+  mayaLink: string;
+}
+
 const COMPETITORS: Competitor[] = [
   {
-    names: ["הראל", "הראל ביטוח"],
+    exactNames: ["הראל ביטוח", "הראל פיננסים", "הראל השקעות", "קבוצת הראל"],
+    fuzzyNames: ["הראל"],
     symbol: "HARL",
     icon: "🟢",
     mayaLink: "https://maya.tase.co.il/he/company/825",
   },
   {
-    names: ["מגדל", "מגדל ביטוח"],
+    exactNames: ["מגדל ביטוח", "מגדל שוקי הון", "מגדל החזקות", "קבוצת מגדל"],
+    fuzzyNames: ["מגדל"],
     symbol: "MGDL",
     icon: "🟣",
     mayaLink: "https://maya.tase.co.il/he/company/604",
   },
   {
-    names: ["כלל ביטוח"],
+    exactNames: ["כלל ביטוח", "כלל החזקות", "כלל פיננסים"],
+    fuzzyNames: [],
     symbol: "CLIS",
     icon: "🟠",
     mayaLink: "https://maya.tase.co.il/he/company/224",
   },
   {
-    names: ["הפניקס", "פניקס"],
+    exactNames: ["הפניקס ביטוח", "הפניקס החזקות", "קבוצת הפניקס"],
+    fuzzyNames: ["הפניקס", "פניקס"],
     symbol: "PHOE",
     icon: "🔴",
     mayaLink: "https://maya.tase.co.il/he/company/1041",
   },
   {
-    names: ["איילון"],
+    exactNames: ["איילון ביטוח", "איילון החזקות", "קבוצת איילון"],
+    fuzzyNames: ["איילון"],
     symbol: "AILN",
     icon: "🔷",
     mayaLink: "https://maya.tase.co.il/he/company/348",
   },
   {
-    names: ["שומרה"],
+    exactNames: ["שומרה ביטוח", "שומרה חברה לביטוח"],
+    fuzzyNames: ["שומרה"],
     symbol: "SHMR",
     icon: "🟤",
     mayaLink: "https://maya.tase.co.il/he/company/1632",
   },
   {
-    names: ["מיטב"],
+    exactNames: ["מיטב דש", "מיטב השקעות"],
+    fuzzyNames: ["מיטב"],
     symbol: "MTDS",
     icon: "⚪",
     mayaLink: "https://maya.tase.co.il/he/company/1702",
   },
   {
-    names: ["אלטשולר"],
+    exactNames: ["אלטשולר שחם"],
+    fuzzyNames: ["אלטשולר"],
     symbol: "ALTS",
     icon: "🔶",
     mayaLink: "https://maya.tase.co.il/he/company/1609",
   },
   {
-    names: ["ביטוח ישיר"],
+    exactNames: ["ביטוח ישיר"],
+    fuzzyNames: [],
     symbol: "DIRC",
     icon: "🟡",
     mayaLink: "https://maya.tase.co.il/he/company/1108",
   },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  Insurance/finance context words — used to confirm fuzzy matches    */
+/* ------------------------------------------------------------------ */
+const INSURANCE_CONTEXT = [
+  "ביטוח", "מבטחים", "פוליס", "פרמי", "תביע", "חיתום", "סיעוד",
+  "פנסי", "גמל", "השתלמות", "פרישה", "אקטואר",
+  "אובדן כושר", "ביטוח משנה", "דמי ניהול",
+  "קרן פנסיה", "קופת גמל", "קופות גמל",
+  "בורסה", "מניות", "מנייה", "שוק ההון", "תשואה", "דיבידנד",
+  "דוח כספי", "דוחות כספיים", "רבעון", "מאזן",
+  "רשות שוק ההון", "הממונה על", "רגולצי",
+  "חברת ביטוח", "חברות ביטוח", "ענף הביטוח", "שוק הביטוח",
+  "מנכ\"ל", "יו\"ר", "דירקטוריון",
+];
+
+function hasInsuranceContext(text: string): boolean {
+  return INSURANCE_CONTEXT.some((kw) => text.includes(kw));
+}
 
 /* ------------------------------------------------------------------ */
 /*  RSS feed sources                                                   */
@@ -210,17 +242,33 @@ function classifyEvent(text: string): EventType {
 
 /* ------------------------------------------------------------------ */
 /*  Match article text to a competitor                                 */
+/*  1. Try exact (unambiguous) names first — instant match             */
+/*  2. For fuzzy (ambiguous) names — require insurance context nearby  */
 /* ------------------------------------------------------------------ */
 function findCompetitor(
   text: string
 ): { name: string; symbol: string; icon: string; mayaLink: string } | null {
+  // Pass 1: exact names — high confidence, no context needed
   for (const c of COMPETITORS) {
-    for (const name of c.names) {
+    for (const name of c.exactNames) {
       if (text.includes(name)) {
-        return { name: c.names[0], symbol: c.symbol, icon: c.icon, mayaLink: c.mayaLink };
+        return { name: c.exactNames[0], symbol: c.symbol, icon: c.icon, mayaLink: c.mayaLink };
       }
     }
   }
+
+  // Pass 2: fuzzy names — only if article has insurance/finance context
+  const contextConfirmed = hasInsuranceContext(text);
+  if (!contextConfirmed) return null;
+
+  for (const c of COMPETITORS) {
+    for (const name of c.fuzzyNames) {
+      if (text.includes(name)) {
+        return { name: c.exactNames[0], symbol: c.symbol, icon: c.icon, mayaLink: c.mayaLink };
+      }
+    }
+  }
+
   return null;
 }
 
@@ -302,7 +350,7 @@ export async function GET() {
   return NextResponse.json({
     items: items.slice(0, 12),
     competitors: COMPETITORS.map((c) => ({
-      name: c.names[0],
+      name: c.exactNames[0],
       symbol: c.symbol,
       icon: c.icon,
       mayaLink: c.mayaLink,

@@ -2,17 +2,28 @@ import { NextResponse } from "next/server";
 import Parser from "rss-parser";
 
 // Insurance companies with their Maya links
+// exactNames: unambiguous, match directly
+// fuzzyNames: common Hebrew words, need insurance context to confirm
 const INSURANCE_COMPANIES = [
-  { names: ["מנורה", "מנורה מבטחים"], symbol: "MMHD", icon: "🔵", mayaLink: "https://maya.tase.co.il/he/company/572" },
-  { names: ["הראל"], symbol: "HARL", icon: "🟢", mayaLink: "https://maya.tase.co.il/he/company/825" },
-  { names: ["מגדל"], symbol: "MGDL", icon: "🟣", mayaLink: "https://maya.tase.co.il/he/company/604" },
-  { names: ["כלל ביטוח"], symbol: "CLIS", icon: "🟠", mayaLink: "https://maya.tase.co.il/he/company/224" },
-  { names: ["הפניקס", "פניקס"], symbol: "PHOE", icon: "🔴", mayaLink: "https://maya.tase.co.il/he/company/1041" },
-  { names: ["איילון"], symbol: "AILN", icon: "🔷", mayaLink: "https://maya.tase.co.il/he/company/348" },
-  { names: ["שומרה"], symbol: "SHMR", icon: "🟤", mayaLink: "https://maya.tase.co.il/he/company/1632" },
-  { names: ["מיטב"], symbol: "MTDS", icon: "⚪", mayaLink: "https://maya.tase.co.il/he/company/1702" },
-  { names: ["אלטשולר"], symbol: "ALTS", icon: "🔶", mayaLink: "https://maya.tase.co.il/he/company/1609" },
-  { names: ["ביטוח ישיר", "ביטוח ישיר"], symbol: "DIRC", icon: "🟡", mayaLink: "https://maya.tase.co.il/he/company/1108" },
+  { exactNames: ["מנורה מבטחים", "מנורה מבטחים החזקות"], fuzzyNames: ["מנורה"], symbol: "MMHD", icon: "🔵", mayaLink: "https://maya.tase.co.il/he/company/572" },
+  { exactNames: ["הראל ביטוח", "הראל פיננסים", "קבוצת הראל"], fuzzyNames: ["הראל"], symbol: "HARL", icon: "🟢", mayaLink: "https://maya.tase.co.il/he/company/825" },
+  { exactNames: ["מגדל ביטוח", "מגדל שוקי הון", "קבוצת מגדל"], fuzzyNames: ["מגדל"], symbol: "MGDL", icon: "🟣", mayaLink: "https://maya.tase.co.il/he/company/604" },
+  { exactNames: ["כלל ביטוח", "כלל החזקות"], fuzzyNames: [], symbol: "CLIS", icon: "🟠", mayaLink: "https://maya.tase.co.il/he/company/224" },
+  { exactNames: ["הפניקס ביטוח", "הפניקס החזקות", "קבוצת הפניקס"], fuzzyNames: ["הפניקס", "פניקס"], symbol: "PHOE", icon: "🔴", mayaLink: "https://maya.tase.co.il/he/company/1041" },
+  { exactNames: ["איילון ביטוח", "איילון החזקות"], fuzzyNames: ["איילון"], symbol: "AILN", icon: "🔷", mayaLink: "https://maya.tase.co.il/he/company/348" },
+  { exactNames: ["שומרה ביטוח"], fuzzyNames: ["שומרה"], symbol: "SHMR", icon: "🟤", mayaLink: "https://maya.tase.co.il/he/company/1632" },
+  { exactNames: ["מיטב דש", "מיטב השקעות"], fuzzyNames: ["מיטב"], symbol: "MTDS", icon: "⚪", mayaLink: "https://maya.tase.co.il/he/company/1702" },
+  { exactNames: ["אלטשולר שחם"], fuzzyNames: ["אלטשולר"], symbol: "ALTS", icon: "🔶", mayaLink: "https://maya.tase.co.il/he/company/1609" },
+  { exactNames: ["ביטוח ישיר"], fuzzyNames: [], symbol: "DIRC", icon: "🟡", mayaLink: "https://maya.tase.co.il/he/company/1108" },
+];
+
+// Context words that confirm fuzzy matches are about insurance companies
+const INSURANCE_CONTEXT = [
+  "ביטוח", "מבטחים", "פוליס", "פרמי", "תביע", "חיתום", "סיעוד",
+  "פנסי", "גמל", "השתלמות", "אקטואר", "אובדן כושר",
+  "בורסה", "מניות", "שוק ההון", "תשואה", "דיבידנד",
+  "דוח כספי", "דוחות כספיים", "רבעון", "מאזן",
+  "חברת ביטוח", "חברות ביטוח", "ענף הביטוח",
 ];
 
 // Keywords that indicate a stock-exchange-related report
@@ -31,9 +42,18 @@ const REPORT_KEYWORDS = [
 ];
 
 function findCompany(text: string) {
+  // Pass 1: exact names — high confidence
   for (const company of INSURANCE_COMPANIES) {
-    for (const name of company.names) {
-      if (text.includes(name)) return company;
+    for (const name of company.exactNames) {
+      if (text.includes(name)) return { ...company, matchedName: name };
+    }
+  }
+  // Pass 2: fuzzy names — only with insurance context
+  const hasContext = INSURANCE_CONTEXT.some((kw) => text.includes(kw));
+  if (!hasContext) return null;
+  for (const company of INSURANCE_COMPANIES) {
+    for (const name of company.fuzzyNames) {
+      if (text.includes(name)) return { ...company, matchedName: name };
     }
   }
   return null;
@@ -104,7 +124,7 @@ export async function GET() {
           // If a specific company is found — great, link to their Maya page
           // If general insurance/finance news — link to general Maya reports
           results.push({
-            company: company?.names[0] || "שוק הביטוח",
+            company: company?.exactNames[0] || "שוק הביטוח",
             companySymbol: company?.symbol || "TASE",
             companyIcon: company?.icon || "🏛️",
             mayaLink: company?.mayaLink || "https://maya.tase.co.il/he/reports/companies",
