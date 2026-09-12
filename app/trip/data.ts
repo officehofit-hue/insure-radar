@@ -34,8 +34,8 @@ export const FLIGHTS = [
 ];
 
 export const CATEGORIES: Category[] = [
-  { id: "flights", label: "טיסות", icon: "✈️", planned: 5800 },
-  { id: "lodging", label: "לינה", icon: "🏨", planned: 8500 },
+  { id: "flights", label: "טיסות", icon: "✈️", planned: 5200 },
+  { id: "lodging", label: "לינה", icon: "🏨", planned: 9100 },
   { id: "transport", label: "תחבורה", icon: "🚆", planned: 2500 },
   { id: "food", label: "אוכל", icon: "🍽️", planned: 5500 },
   { id: "attractions", label: "אטרקציות", icon: "🎟️", planned: 2200 },
@@ -74,6 +74,8 @@ const defaultItinerary: ItineraryDay[] = TRIP_DAYS.map((date, i) => ({
   plan: i === 0 ? "נחיתה 01:15, מנוחה" : i === TRIP_DAYS.length - 1 ? "טיסה חזרה 17:20" : "",
 }));
 
+export const FLIGHTS_PAID_ILS = 5200;
+
 const defaultBookings: Booking[] = [
   {
     id: "flights",
@@ -84,6 +86,7 @@ const defaultBookings: Booking[] = [
     currency: "EUR",
     paid: true,
     paidDate: "2026-09-07",
+    rate: FLIGHTS_PAID_ILS / 1479, // חויב בפועל 5,200 ש"ח
     reference: "Wizz Air",
   },
 ];

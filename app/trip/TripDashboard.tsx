@@ -575,12 +575,17 @@ function BookingsSection({ state, update, toIls }: SectionProps) {
                   {" · "}{ils(toIls(b.amount, "EUR", b.rate))}
                   {b.paid ? (
                     <>
-                      {" · שולם "}{b.paidDate ? fmtDate(b.paidDate) : ""}{" בשער "}
+                      {" · שולם "}{b.paidDate ? fmtDate(b.paidDate) : ""}{" · חויב בפועל ₪ "}
                       <input
-                        type="number" step="0.001" value={b.rate ?? ""} placeholder="..."
-                        onChange={(e) => patch(b.id, { rate: Number(e.target.value) || undefined })}
-                        className="w-14 px-1 rounded bg-section-bg border border-card-border text-[11px] text-left"
+                        type="number" step="1" placeholder="..."
+                        value={b.rate ? Math.round(b.amount * b.rate) : ""}
+                        onChange={(e) => {
+                          const paidIls = Number(e.target.value);
+                          patch(b.id, { rate: paidIls > 0 && b.amount > 0 ? paidIls / b.amount : undefined });
+                        }}
+                        className="w-16 px-1 rounded bg-section-bg border border-card-border text-[11px] text-left"
                       />
+                      {b.rate ? ` (שער ${b.rate.toFixed(3)})` : ""}
                     </>
                   ) : " · לפי שער נוכחי"}
                 </>

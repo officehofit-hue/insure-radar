@@ -33,7 +33,10 @@ function migrateBookings(base: TripState, saved: Partial<TripState>) {
     const rest = saved.bookings.filter((b) => b.id !== "flight-out" && b.id !== "flight-back");
     return [...base.bookings, ...rest];
   }
-  return saved.bookings;
+  // רשומת הטיסות מגרסה קודמת בלי שער נעול מקבלת את השער מהחיוב בפועל
+  return saved.bookings.map((b) =>
+    b.id === "flights" && !b.rate ? { ...b, rate: base.bookings[0].rate, amount: base.bookings[0].amount } : b,
+  );
 }
 
 function mergeItinerary(base: TripState, saved: Partial<TripState>) {
