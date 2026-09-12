@@ -25,6 +25,7 @@ export interface Expense {
   category: CategoryId;
   paidBy: string;
   note: string;
+  rate?: number; // שער אירו לשקל שננעל ביום ההוצאה
 }
 
 export interface Booking {
@@ -35,6 +36,8 @@ export interface Booking {
   amount: number;
   currency: Currency;
   paid: boolean;
+  paidDate?: string; // YYYY-MM-DD, מתי שולם בפועל
+  rate?: number; // שער שננעל ביום התשלום. ריק כל עוד לא שולם
   reference: string;
 }
 
@@ -52,7 +55,9 @@ export interface ChecklistItem {
 
 export interface TripState {
   version: 1;
-  eurRate: number;
+  eurRate: number; // השער הנוכחי לפריטים שעוד לא שולמו
+  rateDate?: string;
+  rateSource?: "live" | "manual";
   totalBudget: number;
   planned: Record<CategoryId, number>;
   expenses: Expense[];

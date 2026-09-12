@@ -17,12 +17,23 @@ export function loadState(): TripState {
       planned: { ...base.planned, ...(saved.planned ?? {}) },
       itinerary: mergeItinerary(base, saved),
       checklist: saved.checklist?.length ? saved.checklist : base.checklist,
-      bookings: saved.bookings ?? base.bookings,
+      bookings: migrateBookings(base, saved),
       expenses: saved.expenses ?? [],
     };
   } catch {
     return base;
   }
+}
+
+function migrateBookings(base: TripState, saved: Partial<TripState>) {
+  if (!saved.bookings) return base.bookings;
+  // גרסה קודמת שמרה שתי טיסות עם סכום 0 לעדכון: מחליפים ברשומה האמיתית
+  const placeholders = saved.bookings.filter((b) => b.id === "flight-out" || b.id === "flight-back");
+  if (placeholders.length && placeholders.every((b) => b.amount === 0)) {
+    const rest = saved.bookings.filter((b) => b.id !== "flight-out" && b.id !== "flight-back");
+    return [...base.bookings, ...rest];
+  }
+  return saved.bookings;
 }
 
 function mergeItinerary(base: TripState, saved: Partial<TripState>) {

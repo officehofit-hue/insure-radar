@@ -16,6 +16,17 @@ const weekday = (iso: string) =>
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+async function fetchRate(date?: string): Promise<{ rate: number; date: string } | null> {
+  try {
+    const res = await fetch(`/api/eur-rate${date ? `?date=${date}` : ""}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.rate === "number" ? { rate: data.rate, date: data.date } : null;
+  } catch {
+    return null;
+  }
+}
+
 const inputCls =
   "w-full px-3 py-2.5 rounded-xl bg-section-bg border border-card-border text-sm text-foreground";
 const cardCls = "bg-card-bg border border-card-border rounded-2xl p-5";
@@ -65,16 +76,52 @@ export default function TripDashboard() {
     });
   };
 
-  const toIls = (amount: number, currency: Currency) =>
-    currency === "EUR" ? amount * (state?.eurRate ?? TRIP.defaultEurRate) : amount;
+  const toIls = (amount: number, currency: Currency, rate?: number) =>
+    currency === "EUR" ? amount * (rate ?? state?.eurRate ?? TRIP.defaultEurRate) : amount;
+
+  // שער חי: נטען פעם אחת, ופריטים ששולמו בלי שער נעול מקבלים את השער של יום התשלום
+  useEffect(() => {
+    if (!state) return;
+    let cancelled = false;
+    (async () => {
+      const live = await fetchRate();
+      if (cancelled) return;
+      if (live) update({ eurRate: live.rate, rateDate: live.date, rateSource: "live" });
+
+      const missingBookings = state.bookings.filter((b) => b.paid && b.currency === "EUR" && !b.rate);
+      const missingExpenses = state.expenses.filter((e) => e.currency === "EUR" && !e.rate);
+      if (!missingBookings.length && !missingExpenses.length) return;
+      const dates = new Set<string>([
+        ...missingBookings.map((b) => b.paidDate ?? todayIso()),
+        ...missingExpenses.map((e) => e.date),
+      ]);
+      const rates = new Map<string, number>();
+      for (const d of dates) {
+        const r = await fetchRate(d);
+        if (r) rates.set(d, r.rate);
+      }
+      if (cancelled || !rates.size) return;
+      update((s) => ({
+        ...s,
+        bookings: s.bookings.map((b) => {
+          const key = b.paidDate ?? todayIso();
+          return b.paid && b.currency === "EUR" && !b.rate && rates.has(key) ? { ...b, rate: rates.get(key) } : b;
+        }),
+        expenses: s.expenses.map((e) =>
+          e.currency === "EUR" && !e.rate && rates.has(e.date) ? { ...e, rate: rates.get(e.date) } : e,
+        ),
+      }));
+    })();
+    return () => { cancelled = true; };
+  }, [state !== null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = useMemo(() => {
     if (!state) return null;
     const today = todayIso();
     const spentByCat = {} as Record<CategoryId, number>;
     CATEGORIES.forEach((c) => (spentByCat[c.id] = 0));
-    for (const e of state.expenses) spentByCat[e.category] += toIls(e.amount, e.currency);
-    for (const b of state.bookings) if (b.paid) spentByCat[b.category] += toIls(b.amount, b.currency);
+    for (const e of state.expenses) spentByCat[e.category] += toIls(e.amount, e.currency, e.rate);
+    for (const b of state.bookings) if (b.paid) spentByCat[b.category] += toIls(b.amount, b.currency, b.rate);
     const spent = Object.values(spentByCat).reduce((a, b) => a + b, 0);
     const committed = state.bookings
       .filter((b) => !b.paid)
@@ -97,7 +144,7 @@ export default function TripDashboard() {
     const onTripPlanned = onTripCats.reduce((a, c) => a + state.planned[c], 0);
     const onTripSpent = state.expenses
       .filter((e) => onTripCats.includes(e.category) && e.date >= TRIP.startDate)
-      .reduce((a, e) => a + toIls(e.amount, e.currency), 0);
+      .reduce((a, e) => a + toIls(e.amount, e.currency, e.rate), 0);
     const dailyBudget = onTripPlanned / totalDays;
     const dailyAvg = daysElapsed > 0 ? onTripSpent / daysElapsed : 0;
     const dailyRemaining = daysLeft > 0 ? (onTripPlanned - onTripSpent) / daysLeft : 0;
@@ -235,8 +282,13 @@ export default function TripDashboard() {
               <input type="number" value={state.totalBudget} onChange={(e) => update({ totalBudget: Number(e.target.value) || 0 })} className={`${inputCls} mt-1`} />
             </label>
             <label className="text-xs text-text-muted">
-              שער אירו (₪)
-              <input type="number" step="0.01" value={state.eurRate} onChange={(e) => update({ eurRate: Number(e.target.value) || 1 })} className={`${inputCls} mt-1`} />
+              שער אירו נוכחי (₪){" "}
+              {state.rateSource === "live" ? (
+                <span className="text-accent-green">חי · {state.rateDate ? fmtDate(state.rateDate) : ""}</span>
+              ) : (
+                <span className="text-accent-red">ידני</span>
+              )}
+              <input type="number" step="0.01" value={state.eurRate} onChange={(e) => update({ eurRate: Number(e.target.value) || 1, rateSource: "manual" })} className={`${inputCls} mt-1`} />
             </label>
             <button className={btnGhost} onClick={() => exportState(state)}>⬇️ ייצוא לקובץ</button>
             <button className={btnGhost} onClick={() => fileRef.current?.click()}>⬆️ ייבוא מקובץ</button>
@@ -254,6 +306,9 @@ export default function TripDashboard() {
                 e.target.value = "";
               }}
             />
+            <p className="text-[11px] text-text-muted col-span-2 md:col-span-4">
+              השער הנוכחי משמש רק לפריטים שעוד לא שולמו. כל הוצאה והזמנה ששולמו נשמרות עם השער של יום התשלום ולא משתנות.
+            </p>
           </div>
         </Section>
 
@@ -352,7 +407,7 @@ function AddLine({ placeholder, onAdd }: { placeholder: string; onAdd: (v: strin
 type SectionProps = {
   state: TripState;
   update: (p: Partial<TripState> | ((s: TripState) => TripState)) => void;
-  toIls: (n: number, c: Currency) => number;
+  toIls: (n: number, c: Currency, rate?: number) => number;
 };
 
 function ExpensesSection({ state, update, toIls }: SectionProps) {
@@ -366,7 +421,10 @@ function ExpensesSection({ state, update, toIls }: SectionProps) {
   const add = () => {
     const n = Number(amount);
     if (!n || n <= 0) return;
-    const e: Expense = { id: uid(), date, amount: n, currency, category, note: note.trim(), paidBy: paidBy.trim() };
+    const e: Expense = {
+      id: uid(), date, amount: n, currency, category, note: note.trim(), paidBy: paidBy.trim(),
+      rate: currency === "EUR" ? state.eurRate : undefined,
+    };
     update({ expenses: [e, ...state.expenses] });
     setAmount(""); setNote("");
   };
@@ -407,7 +465,16 @@ function ExpensesSection({ state, update, toIls }: SectionProps) {
               </div>
               <div className="text-left">
                 <p className="font-bold">{e.currency === "EUR" ? eur(e.amount) : ils(e.amount)}</p>
-                {e.currency === "EUR" && <p className="text-[11px] text-text-muted">{ils(toIls(e.amount, "EUR"))}</p>}
+                {e.currency === "EUR" && (
+                  <p className="text-[11px] text-text-muted">
+                    {ils(toIls(e.amount, "EUR", e.rate))} · שער{" "}
+                    <input
+                      type="number" step="0.001" value={e.rate ?? ""}
+                      onChange={(ev) => update({ expenses: state.expenses.map((x) => x.id === e.id ? { ...x, rate: Number(ev.target.value) || undefined } : x) })}
+                      className="w-14 px-1 rounded bg-section-bg border border-card-border text-[11px] text-left"
+                    />
+                  </p>
+                )}
               </div>
               <button onClick={() => update({ expenses: state.expenses.filter((x) => x.id !== e.id) })} className="text-xs text-text-muted hover:text-accent-red">✕</button>
             </div>
@@ -421,7 +488,7 @@ function ExpensesSection({ state, update, toIls }: SectionProps) {
 function ItinerarySection({ state, update, toIls }: SectionProps) {
   const today = todayIso();
   const spentByDay = new Map<string, number>();
-  for (const e of state.expenses) spentByDay.set(e.date, (spentByDay.get(e.date) ?? 0) + toIls(e.amount, e.currency));
+  for (const e of state.expenses) spentByDay.set(e.date, (spentByDay.get(e.date) ?? 0) + toIls(e.amount, e.currency, e.rate));
 
   const setDay = (date: string, patch: Partial<{ city: string; plan: string }>) =>
     update({ itinerary: state.itinerary.map((d) => (d.date === date ? { ...d, ...patch } : d)) });
@@ -458,7 +525,11 @@ function BookingsSection({ state, update, toIls }: SectionProps) {
 
   const add = () => {
     if (!title.trim()) return;
-    const b: Booking = { id: uid(), title: title.trim(), amount: Number(amount) || 0, currency, category, dueDate, paid, reference: "" };
+    const b: Booking = {
+      id: uid(), title: title.trim(), amount: Number(amount) || 0, currency, category, dueDate, paid, reference: "",
+      paidDate: paid ? todayIso() : undefined,
+      rate: paid && currency === "EUR" ? state.eurRate : undefined,
+    };
     update({ bookings: [...state.bookings, b] });
     setTitle(""); setAmount("");
   };
@@ -476,7 +547,7 @@ function BookingsSection({ state, update, toIls }: SectionProps) {
           {unpaid.map((b) => (
             <div key={b.id} className="flex justify-between text-sm py-1">
               <span>{fmtDate(b.dueDate)} · {b.title}</span>
-              <span className="font-bold">{b.currency === "EUR" ? eur(b.amount) : ils(b.amount)}</span>
+              <span className="font-bold">{b.currency === "EUR" ? `${eur(b.amount)} ≈ ${ils(toIls(b.amount, "EUR"))}` : ils(b.amount)}</span>
             </div>
           ))}
         </div>
@@ -486,10 +557,35 @@ function BookingsSection({ state, update, toIls }: SectionProps) {
         {sorted.map((b) => (
           <div key={b.id} className="py-2.5 flex flex-wrap items-center gap-2 text-sm">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={b.paid} onChange={() => patch(b.id, { paid: !b.paid })} className="w-4 h-4 accent-[#1a8f64]" />
+              <input
+                type="checkbox" checked={b.paid}
+                onChange={() =>
+                  patch(b.id, b.paid
+                    ? { paid: false, paidDate: undefined, rate: undefined }
+                    : { paid: true, paidDate: todayIso(), rate: b.currency === "EUR" ? state.eurRate : undefined })
+                }
+                className="w-4 h-4 accent-[#1a8f64]"
+              />
               <span className={b.paid ? "text-text-muted" : ""}>{CATEGORY_MAP[b.category].icon} {b.title}</span>
             </label>
-            <span className="text-[11px] text-text-muted">{fmtDate(b.dueDate)}{b.reference ? ` · ${b.reference}` : ""}</span>
+            <span className="text-[11px] text-text-muted">
+              {fmtDate(b.dueDate)}{b.reference ? ` · ${b.reference}` : ""}
+              {b.currency === "EUR" && (
+                <>
+                  {" · "}{ils(toIls(b.amount, "EUR", b.rate))}
+                  {b.paid ? (
+                    <>
+                      {" · שולם "}{b.paidDate ? fmtDate(b.paidDate) : ""}{" בשער "}
+                      <input
+                        type="number" step="0.001" value={b.rate ?? ""} placeholder="..."
+                        onChange={(e) => patch(b.id, { rate: Number(e.target.value) || undefined })}
+                        className="w-14 px-1 rounded bg-section-bg border border-card-border text-[11px] text-left"
+                      />
+                    </>
+                  ) : " · לפי שער נוכחי"}
+                </>
+              )}
+            </span>
             <div className="mr-auto flex items-center gap-1">
               <input type="number" value={b.amount} onChange={(e) => patch(b.id, { amount: Number(e.target.value) || 0 })} className="w-24 px-2 py-1 rounded-lg bg-section-bg border border-card-border text-xs text-left" />
               <select value={b.currency} onChange={(e) => patch(b.id, { currency: e.target.value as Currency })} className="px-1 py-1 rounded-lg bg-section-bg border border-card-border text-xs">

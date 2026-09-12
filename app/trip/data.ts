@@ -10,7 +10,7 @@ export const TRIP = {
   endDate: "2027-08-18",
   homeCurrency: "ILS" as const,
   localCurrency: "EUR" as const,
-  defaultEurRate: 4.0,
+  defaultEurRate: 4.0, // גיבוי בלבד כשאין שער חי
   defaultTotalBudget: 27000,
 };
 
@@ -34,14 +34,14 @@ export const FLIGHTS = [
 ];
 
 export const CATEGORIES: Category[] = [
-  { id: "flights", label: "טיסות", icon: "✈️", planned: 4000 },
-  { id: "lodging", label: "לינה", icon: "🏨", planned: 9000 },
+  { id: "flights", label: "טיסות", icon: "✈️", planned: 5800 },
+  { id: "lodging", label: "לינה", icon: "🏨", planned: 8500 },
   { id: "transport", label: "תחבורה", icon: "🚆", planned: 2500 },
-  { id: "food", label: "אוכל", icon: "🍽️", planned: 6000 },
-  { id: "attractions", label: "אטרקציות", icon: "🎟️", planned: 2500 },
+  { id: "food", label: "אוכל", icon: "🍽️", planned: 5500 },
+  { id: "attractions", label: "אטרקציות", icon: "🎟️", planned: 2200 },
   { id: "insurance", label: "ביטוח נסיעות", icon: "🛡️", planned: 500 },
-  { id: "shopping", label: "קניות", icon: "🛍️", planned: 1000 },
-  { id: "reserve", label: "רזרבה", icon: "🧯", planned: 1500 },
+  { id: "shopping", label: "קניות", icon: "🛍️", planned: 800 },
+  { id: "reserve", label: "רזרבה", icon: "🧯", planned: 1200 },
 ];
 
 export const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.id, c])) as Record<
@@ -76,24 +76,15 @@ const defaultItinerary: ItineraryDay[] = TRIP_DAYS.map((date, i) => ({
 
 const defaultBookings: Booking[] = [
   {
-    id: "flight-out",
-    title: "טיסה הלוך W6 2606",
+    id: "flights",
+    title: "טיסות הלוך ושוב W6 2606 / W6 2605",
     category: "flights",
     dueDate: "2027-08-03",
-    amount: 0,
-    currency: "ILS",
+    amount: 1479,
+    currency: "EUR",
     paid: true,
-    reference: "לעדכן סכום",
-  },
-  {
-    id: "flight-back",
-    title: "טיסה חזור W6 2605",
-    category: "flights",
-    dueDate: "2027-08-18",
-    amount: 0,
-    currency: "ILS",
-    paid: true,
-    reference: "לעדכן סכום",
+    paidDate: "2026-09-07",
+    reference: "Wizz Air",
   },
 ];
 
